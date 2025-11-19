@@ -1,0 +1,7 @@
+path: ./segmentor/data
+train: images/train
+val: images/val
+names:
+  0: header
+  1: notes
+  2: billing_codes

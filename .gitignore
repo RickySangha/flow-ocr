@@ -1,0 +1,51 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# OS / editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model weights and checkpoints
+*.pt
+*.onnx
+*.pth
+
+# Dataset caches
+*.cache
+
+# Local data (keep config files)
+data/images/
+data/labels/
+!data/dataset.yaml
+!data/class_names.txt
+
+# Inference / training outputs
+out/
+runs/
+stage0_debug/
+pred/
+
+# Misc
+*.pickle
+*.pkl
+
+# Models
+models/
+chandra_ocr/models/
