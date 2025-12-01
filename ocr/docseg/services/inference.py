@@ -10,7 +10,7 @@ try:
 except Exception:
     YOLO = None
 
-from .config import DocTypeRegistry
+from ..config.config import DocTypeRegistry
 
 
 @dataclass

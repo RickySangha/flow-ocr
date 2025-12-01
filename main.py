@@ -1,7 +1,7 @@
 """
 Simple end-to-end pipeline:
 
-Scanify (stage 0) -> DocSeg (segmentation) -> Chandra OCR (LLM backend).
+Scanify (stage 0) -> DocSeg (segmentation) -> Chandra OCR (LLM backend) -> LLM Extractor (Structured Data).
 
 Usage (from project root):
 
@@ -10,18 +10,21 @@ Usage (from project root):
 You must have:
 - YOLO weights trained for your form type (see docseg_test.py).
 - A running Chandra-compatible OpenAI-style API (see chandra_inference_test.py).
+- OPENAI_API_KEY set for the final extraction step.
 """
 
 import argparse
 import os
 import time
-from typing import Dict
+from typing import Dict, List
 
 import cv2 as cv
+import numpy as np
 
-from scanify import Scanify, ScanifyConfig
-from docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
-from chandra_ocr.ocr import ChandraOCRPredictor, ChandraBackend, Segment
+from ocr.scanify import Scanify, ScanifyConfig
+from ocr.docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
+from ocr.chandra_ocr import ChandraOCRPredictor, ChandraBackend, Segment
+from ocr.llm_extractor import LLMExtractor, Document
 from utils import logger
 
 
@@ -40,6 +43,7 @@ def build_stage0() -> Scanify:
     cfg = ScanifyConfig(
         return_color=True,
         save_every_step=False,
+        save_debug=False,
     )
     return Scanify(cfg)
 
@@ -54,7 +58,7 @@ def build_segmenter() -> SegmenterInference:
             )
         }
     )
-    return SegmenterInference(registry, imgsz=1280, conf=0.05)
+    return SegmenterInference(registry, imgsz=1280, conf=0.01)
 
 
 def build_ocr() -> ChandraOCRPredictor:
@@ -72,6 +76,21 @@ def build_ocr() -> ChandraOCRPredictor:
     return ChandraOCRPredictor(
         backend=backend,
     )
+
+
+def build_extractor() -> LLMExtractor:
+    """Create the LLM Extractor for structured data."""
+    return LLMExtractor()
+
+
+def _crop_image(image: np.ndarray, bbox: tuple[int, int, int, int]) -> bytes:
+    """Crop image and return PNG bytes."""
+    x1, y1, x2, y2 = bbox
+    crop = image[y1:y2, x1:x2]
+    success, encoded_image = cv.imencode(".png", crop)
+    if not success:
+        raise ValueError("Failed to encode cropped image")
+    return encoded_image.tobytes()
 
 
 def run_pipeline(image_path: str) -> None:
@@ -102,12 +121,6 @@ def run_pipeline(image_path: str) -> None:
     stage0_elapsed = time.time() - stage0_start
     logger.time("Stage 0: Scanify", stage0_elapsed)
 
-    # Optional: save the preprocessed image for inspection
-    os.makedirs("out", exist_ok=True)
-    preproc_path = os.path.join("out", "stage0_preprocessed.png")
-    cv.imwrite(preproc_path, image_bgr)
-    logger.info(f"Saved preprocessed image to {preproc_path}")
-
     # ---------- Stage 1: DocSeg ----------
     logger.stage("Stage 1: DocSeg (Segmentation)")
     stage1_start = time.time()
@@ -120,9 +133,8 @@ def run_pipeline(image_path: str) -> None:
             image_bgr,
             doc_type=DOC_TYPE_NAME,
             required_labels=("header", "notes"),
-            return_crops=True,
-            crops_dir="out/crops",
-            save_overlay_path="out/overlay.png",
+            return_crops=False,  # Disable saving crops to disk
+            save_overlay_path=None, # Disable saving overlay
             per_label_nms_iou=0.5,
             max_per_label=1,
         )
@@ -147,10 +159,11 @@ def run_pipeline(image_path: str) -> None:
 
     with logger.timer("Preparing segments"):
         segments = []
-        crops_dir = seg_res.crops_dir or "out/crops"
         for idx, r in enumerate(seg_res.regions):
             seg_type = SEGMENT_TYPE_MAP.get(r.label, r.label)
-            crop_path = os.path.join(crops_dir, f"{idx:02d}_{r.label}.png")
+            
+            # Crop in memory
+            image_bytes = _crop_image(image_bgr, r.bbox)
 
             segments.append(
                 Segment(
@@ -158,7 +171,7 @@ def run_pipeline(image_path: str) -> None:
                     page_id="page_0",
                     segment_type=seg_type,
                     bbox=r.bbox,
-                    crop_path=crop_path,
+                    image_bytes=image_bytes,
                 )
             )
         logger.info(f"Prepared {len(segments)} segments for OCR")
@@ -169,20 +182,45 @@ def run_pipeline(image_path: str) -> None:
     stage2_elapsed = time.time() - stage2_start
     logger.time("Stage 2: Chandra OCR", stage2_elapsed)
 
-    logger.stage("OCR Results")
+    # ---------- Stage 3: LLM Extraction ----------
+    logger.stage("Stage 3: LLM Extraction")
+    stage3_start = time.time()
+
+    # Construct OCR text block
+    ocr_text_parts = []
     for res in ocr_results:
-        logger.info(
-            f"[{res.segment_type}] {res.normalized_value!r} "
-            f"(conf={res.confidence:.2f}, warnings={res.warnings})"
+        text = res.normalized_value or res.raw_text
+        ocr_text_parts.append(f"{res.segment_type}: '{text}'")
+    
+    full_ocr_text = "\n\n".join(ocr_text_parts)
+    logger.info("Constructed OCR Text for Extraction:")
+    print(full_ocr_text)
+
+    with logger.timer("Building LLM Extractor"):
+        extractor = build_extractor()
+
+    with logger.timer("Running Extraction"):
+        doc: Document = extractor.extract(
+            document_id=os.path.basename(image_path),
+            ocr_text=full_ocr_text,
         )
+
+    stage3_elapsed = time.time() - stage3_start
+    logger.time("Stage 3: LLM Extraction", stage3_elapsed)
 
     total_elapsed = time.time() - pipeline_start
     logger.stage(f"Pipeline completed in {total_elapsed:.2f}s")
 
+    print("\n" + "="*40)
+    print("FINAL EXTRACTED DOCUMENT")
+    print("="*40)
+    print(doc.model_dump_json(indent=2))
+    print("="*40 + "\n")
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run Scanify -> DocSeg -> Chandra OCR on a single image."
+        description="Run Scanify -> DocSeg -> Chandra OCR -> LLM Extraction on a single image."
     )
     parser.add_argument(
         "image",

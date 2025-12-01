@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json, os
 from typing import Any, Dict, List, Optional
-from .types import Segment, OCRResult, Candidate
+from ..models import Segment, OCRResult, Candidate
 from .validators import validate_msp_code, validate_phn, always_true
 from .normalizers import normalize_msp_code, normalize_whitespace
 from .backends.base import BaseOCRBackend
@@ -75,8 +75,8 @@ class ChandraOCRPredictor:
     def __init__(
         self,
         backend: BaseOCRBackend,
-        prompt_dir: str = "../ocr/prompts",
-        constraint_dir: str = "../ocr/constraints",
+        prompt_dir: str = "../config/prompts",
+        constraint_dir: str = "constraints",
         min_confidence: float = 0.6,
     ):
         self.backend = backend

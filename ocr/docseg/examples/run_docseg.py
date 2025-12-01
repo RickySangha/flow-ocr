@@ -1,6 +1,6 @@
 import os
 import cv2 as cv
-from docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
+from ocr.docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
 
 # Registry for your form type (class order must match dataset.yaml)
 registry = DocTypeRegistry(

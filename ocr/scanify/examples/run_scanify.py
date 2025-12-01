@@ -1,4 +1,4 @@
-from scanify import Scanify, ScanifyConfig
+from ocr.scanify import Scanify, ScanifyConfig
 
 cfg = ScanifyConfig(
     keep_color_debug=True,
