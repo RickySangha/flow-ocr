@@ -15,16 +15,14 @@ You receive noisy OCR text from emergency visit forms. The text can include:
 
 Your job is ONLY to:
 1. Extract structured data (patient, encounter, provider, clinical info).
-2. Extract billing and diagnosis codes you can clearly see in the OCR text or in an existing code list provided by the user.
 
 You MUST be robust to OCR noise:
-- If a field is clearly implied but slightly misspelled, normalize it.
+- If a field is clearly implied but slightly misspelled, normalize it. Fix the case on names.
 - If you are not reasonably sure about a value, set it to null INSTEAD of guessing.
 
 The response will be validated against a Pydantic model named `Document`.
 Follow its field names and types as closely as possible.
 Use null for any value you cannot reliably infer.
-Keep `clinical.raw_text` as the full OCR text (possibly normalized for spacing).
 """
 
 CODE_REVIEW_SYSTEM_PROMPT = """
@@ -49,7 +47,6 @@ You MUST follow these rules:
 - Use ONLY codes that appear in the provided billing_code_db and diagnosis_code_db objects.
 - Be conservative: do not over-code or add codes where support is unclear.
 - If you are unsure whether a code is appropriate, leave it out and explain why in the review.
-- Keep the original clinical text in clinical.raw_text unchanged.
 
 The response will be validated against a Pydantic model named `Document` which includes
 a `code_review` field. You must return a complete, updated Document object:

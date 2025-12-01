@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from llm_extractor import LLMExtractor, LLMCodeReviewer, Document
+from ocr_modules.llm_extractor import LLMExtractor, LLMCodeReviewer, Document
 
 
 def main() -> None:
@@ -40,7 +40,7 @@ patient_info: 'SIDHU, SUNEHA KAUR ARRIVAL: 23oct2025 TIME: 1910 REG.CAT: P.EM (N
     }
 
     extractor = LLMExtractor()
-    reviewer = LLMCodeReviewer()
+    # reviewer = LLMCodeReviewer()
 
     doc: Document = extractor.extract(
         document_id="example-doc-1",

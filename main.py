@@ -21,10 +21,10 @@ from typing import Dict, List
 import cv2 as cv
 import numpy as np
 
-from ocr.scanify import Scanify, ScanifyConfig
-from ocr.docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
-from ocr.chandra_ocr import ChandraOCRPredictor, ChandraBackend, Segment
-from ocr.llm_extractor import LLMExtractor, Document
+from ocr_modules.scanify import Scanify, ScanifyConfig
+from ocr_modules.docseg import SegmenterInference, DocTypeRegistry, DocTypeConfig
+from ocr_modules.ocr import ChandraOCRPredictor, ChandraBackend, Segment
+from ocr_modules.llm_extractor import LLMExtractor, Document
 from utils import logger
 
 
@@ -56,7 +56,7 @@ def build_segmenter() -> SegmenterInference:
                 weights_path="runs/segment/forms-3cls7/weights/best.pt",
                 class_names=["header", "notes", "billing_codes"],
             )
-        }
+        }   
     )
     return SegmenterInference(registry, imgsz=1280, conf=0.01)
 

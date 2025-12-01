@@ -74,9 +74,9 @@ class Clinical(BaseModel):
     allergies: Optional[str] = None
     vitals: Vitals = Field(default_factory=Vitals)
     normalized_notes: str = Field(description="Normalize the raw doctors notes. Remove irrelevant info.")
-    raw_text: str = Field(
-        description="The full OCR text used for extraction (for traceability)."
-    )
+    # raw_text: str = Field(
+    #     description="The full OCR text used for extraction (for traceability)."
+    # )
 
 
 class CodeReviewIssue(BaseModel):

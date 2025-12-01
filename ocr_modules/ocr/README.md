@@ -206,5 +206,5 @@ results = predictor.predict(segments, context=ctx, top_k=3)
 run llama.cpp server with the chandra model:
 
 ```bash
-llama-server -m "/Users/ricky/Desktop/Flow Health App/flow-ocr/ocr/chandra_ocr/models/Chandra-OCR-Q4_K_M.gguf" --mmproj "/Users/ricky/Desktop/Flow Health App/flow-ocr/ocr/chandra_ocr/models/mmproj-F32.gguf" --ctx-size 8192 -ngl 999
+llama-server -m "/Users/ricky/Desktop/Flow Health App/flow-ocr/ocr_modules/ocr/models/Chandra-OCR-Q4_K_M.gguf" --mmproj "/Users/ricky/Desktop/Flow Health App/flow-ocr/ocr_modules/ocr/models/mmproj-F32.gguf" --ctx-size 8192 -ngl 999
 ```

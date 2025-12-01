@@ -30,7 +30,7 @@ class LLMExtractor:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "gpt-5-nano-2025-08-07",
+        model: str = "gpt-4.1-nano",
         base_url: Optional[str] = None,
         system_prompt: Optional[str] = None,
         temperature: float = 0.1,
@@ -89,7 +89,8 @@ class LLMExtractor:
                 {"role": "user", "content": json.dumps(user_payload)},
             ],
             text_format=Document,
-            reasoning={ "effort": "low" },
+            temperature=self.temperature,
+            # reasoning={ "effort": "low" },
         )
 
         return response.output_parsed
