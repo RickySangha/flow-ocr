@@ -1,4 +1,4 @@
-from ocr.chandra_ocr import ChandraOCRPredictor, ChandraBackend, Segment
+from ocr_modules.ocr import ChandraOCRPredictor, ChandraBackend, Segment
 
 backend = ChandraBackend(
     base_url="http://127.0.0.1:8080/v1",
